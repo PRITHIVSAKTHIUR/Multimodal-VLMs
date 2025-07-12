@@ -19,7 +19,6 @@ from transformers import (
     TextIteratorStreamer,
 )
 from transformers.image_utils import load_image
-from pdf2image import convert_from_path
 
 # Constants for text generation
 MAX_MAX_NEW_TOKENS = 2048
@@ -42,8 +41,8 @@ model_x = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_X, trust_remote_code=True,
     torch_dtype=torch.float16).to(device).eval()
 
-# Load R1-Onevision-7B
-MODEL_ID_T = "FriendliAI/R1-Onevision-7B"
+# Load prithivMLmods/WR30a-Deep-7B-0711
+MODEL_ID_T = "prithivMLmods/WR30a-Deep-7B-0711"
 processor_t = AutoProcessor.from_pretrained(MODEL_ID_T, trust_remote_code=True)
 model_t = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_T, trust_remote_code=True,
@@ -56,12 +55,16 @@ model_o = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_O, trust_remote_code=True,
     torch_dtype=torch.float16).to(device).eval()
 
-# Load VLM-R1-Qwen2.5VL-3B-Math-0305
-MODEL_ID_W = "omlab/VLM-R1-Qwen2.5VL-3B-Math-0305"
-processor_w = AutoProcessor.from_pretrained(MODEL_ID_W, trust_remote_code=True)
+#-----------------------------subfolder-----------------------------#
+# Load MonkeyOCR-pro-1.2B
+MODEL_ID_W = "echo840/MonkeyOCR-pro-1.2B"
+SUBFOLDER = "Recognition"
+processor_w = AutoProcessor.from_pretrained(MODEL_ID_W, trust_remote_code=True, subfolder=SUBFOLDER)
 model_w = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_ID_W, trust_remote_code=True,
+    subfolder=SUBFOLDER,
     torch_dtype=torch.float16).to(device).eval()
+#-----------------------------subfolder-----------------------------#
 
 # Function to downsample video frames
 def downsample_video(video_path):
@@ -85,16 +88,6 @@ def downsample_video(video_path):
     vidcap.release()
     return frames
 
-# Function to convert PDF to image
-def pdf_to_image(pdf_path):
-    """
-    Converts a single-page PDF to a PIL image.
-    """
-    images = convert_from_path(pdf_path)
-    if not images:
-        raise ValueError("Failed to convert PDF to image.")
-    return images[0]  # Return the first page
-
 # Function to generate text responses based on image input
 @spaces.GPU
 def generate_image(model_name: str,
@@ -108,19 +101,19 @@ def generate_image(model_name: str,
     """
     Generates responses using the selected model for image input.
     """
-    if model_name == "Vision-Matters-7B-Math":
+    if model_name == "Vision-Matters-7B":
         processor = processor_m
         model = model_m
     elif model_name == "ViGaL-7B":
         processor = processor_x
         model = model_x
-    elif model_name == "Visionary-R1":
+    elif model_name == "Visionary-R1-3B":
         processor = processor_o
         model = model_o
-    elif model_name == "R1-Onevision-7B":
+    elif model_name == "WR30a-Deep-7B-0711":
         processor = processor_t
         model = model_t
-    elif model_name == "VLM-R1-Qwen2.5VL-3B-Math-0305":
+    elif model_name == "MonkeyOCR-pro-1.2B":
         processor = processor_w
         model = model_w
     else:
@@ -175,19 +168,19 @@ def generate_video(model_name: str,
     """
     Generates responses using the selected model for video input.
     """
-    if model_name == "Vision-Matters-7B-Math":
+    if model_name == "Vision-Matters-7B":
         processor = processor_m
         model = model_m
     elif model_name == "ViGaL-7B":
         processor = processor_x
         model = model_x
-    elif model_name == "Visionary-R1":
+    elif model_name == "Visionary-R1-3B":
         processor = processor_o
         model = model_o
-    elif model_name == "R1-Onevision-7B":
+    elif model_name == "WR30a-Deep-7B-0711":
         processor = processor_t
         model = model_t
-    elif model_name == "VLM-R1-Qwen2.5VL-3B-Math-0305":
+    elif model_name == "MonkeyOCR-pro-1.2B":
         processor = processor_w
         model = model_w
     else:
@@ -240,40 +233,11 @@ def generate_video(model_name: str,
         time.sleep(0.01)
         yield buffer, buffer
 
-# Function to generate text responses based on PDF input
-@spaces.GPU
-def generate_pdf(model_name: str,
-                 text: str,
-                 pdf_path: str,
-                 max_new_tokens: int = 1024,
-                 temperature: float = 0.6,
-                 top_p: float = 0.9,
-                 top_k: int = 50,
-                 repetition_penalty: float = 1.2):
-    """
-    Generates responses using the selected model for single-page PDF input by converting it to an image.
-    """
-    try:
-        image = pdf_to_image(pdf_path)
-    except Exception as e:
-        yield f"Error converting PDF to image: {str(e)}", f"Error converting PDF to image: {str(e)}"
-        return
-    yield from generate_image(model_name, text, image, max_new_tokens, temperature, top_p, top_k, repetition_penalty)
-
-# Function to save the output text to a Markdown file
-def save_to_md(output_text):
-    """
-    Saves the output text to a Markdown file and returns the file path for download.
-    """
-    file_path = f"result_{uuid.uuid4()}.md"
-    with open(file_path, "w") as f:
-        f.write(output_text)
-    return file_path
-
-# Define examples for image, video, and PDF inference
+# Define examples for image and video inference
 image_examples = [
+    ["Extract the content.", "images/7.png"],
     ["Solve the problem to find the value.", "images/1.jpg"],
-    ["Explain the scene.", "images/6.jpg"],
+    ["Explain the scene.", "images/6.JPG"],
     ["Solve the problem step by step.", "images/2.jpg"],
     ["Find the value of 'X'.", "images/3.jpg"],
     ["Simplify the expression.", "images/4.jpg"],
@@ -283,12 +247,6 @@ image_examples = [
 video_examples = [
     ["Explain the video in detail.", "videos/1.mp4"],
     ["Explain the video in detail.", "videos/2.mp4"]
-
-]
-
-pdf_examples = [
-    ["Explain the content briefly.", "pdfs/1.pdf"],
-    ["What is the content about?", "pdfs/2.pdf"]
 ]
 
 # Added CSS to style the output area as a "Canvas"
@@ -310,7 +268,7 @@ css = """
 # Create the Gradio Interface
 with gr.Blocks(css=css, theme="bethecloud/storj_theme") as demo:
     gr.Markdown(
-        "# **[Multimodal VLMs 5x](https://huggingface.co/collections/prithivMLmods/multimodal-implementations-67c9982ea04b39f0608badb0)**"
+        "# **[Multimodal VLMs [OCR | VQA]](https://huggingface.co/collections/prithivMLmods/multimodal-implementations-67c9982ea04b39f0608badb0)**"
     )
     with gr.Row():
         with gr.Column():
@@ -333,15 +291,6 @@ with gr.Blocks(css=css, theme="bethecloud/storj_theme") as demo:
                                              elem_classes="submit-btn")
                     gr.Examples(examples=video_examples,
                                 inputs=[video_query, video_upload])
-                with gr.TabItem("Single Page PDF Inference"):
-                    pdf_query = gr.Textbox(
-                        label="Query Input",
-                        placeholder="Enter your query here...")
-                    pdf_upload = gr.File(label="PDF", type="filepath")
-                    pdf_submit = gr.Button("Submit",
-                                           elem_classes="submit-btn")
-                    gr.Examples(examples=pdf_examples,
-                                inputs=[pdf_query, pdf_upload])
 
             with gr.Accordion("Advanced options", open=False):
                 max_new_tokens = gr.Slider(label="Max new tokens",
@@ -372,28 +321,28 @@ with gr.Blocks(css=css, theme="bethecloud/storj_theme") as demo:
 
         with gr.Column():
             with gr.Column(elem_classes="canvas-output"):
-                gr.Markdown("## Result.Md")
+                gr.Markdown("## Output")
                 output = gr.Textbox(label="Raw Output Stream",
                                     interactive=False,
-                                    lines=2)
-                with gr.Accordion("Formatted Result (Result.md)", open=False):
+                                    lines=2, show_copy_button=True)
+                with gr.Accordion("(Result.md)", open=False):
                     markdown_output = gr.Markdown(
-                        label="Formatted Result (Result.Md)")
+                        label="markup.md")
                 #download_btn = gr.Button("Download Result.md")
 
             model_choice = gr.Radio(choices=[
-                "Vision-Matters-7B-Math", "ViGaL-7B", "Visionary-R1",
-                "R1-Onevision-7B", "VLM-R1-Qwen2.5VL-3B-Math-0305"
+                 "Vision-Matters-7B", "WR30a-Deep-7B-0711",
+                 "ViGaL-7B", "MonkeyOCR-pro-1.2B", "Visionary-R1-3B"
             ],
                                     label="Select Model",
-                                    value="Vision-Matters-7B-Math")
+                                    value="Vision-Matters-7B")
 
-            gr.Markdown("**Model Info 💻** | [Report Bug](https://huggingface.co/spaces/prithivMLmods/Multimodal-VLMs-5x/discussions)")          
-            gr.Markdown("> [Vision Matters 7B Math](https://huggingface.co/Yuting6/Vision-Matters-7B): vision-matters is a simple visual perturbation framework that can be easily integrated into existing post-training pipelines including sft, dpo, and grpo. our findings highlight the critical role of visual perturbation: better reasoning begins with better seeing.")
+            gr.Markdown("**Model Info 💻** | [Report Bug](https://huggingface.co/spaces/prithivMLmods/Multimodal-VLMs-5x/discussions)")         
+            gr.Markdown("> [WR30a-Deep-7B-0711](https://huggingface.co/prithivMLmods/WR30a-Deep-7B-0711): wr30a-deep-7b-0711 model is a fine-tuned version of qwen2.5-vl-7b-instruct, optimized for image captioning, visual analysis, and image reasoning. Built on top of the qwen2.5-vl architecture, this experimental model enhances visual comprehension capabilities with focused training on 1,500k image pairs for superior image understanding.")
+            gr.Markdown("> [MonkeyOCR-pro-1.2B](https://huggingface.co/echo840/MonkeyOCR-pro-1.2B): MonkeyOCR adopts a structure-recognition-relation (SRR) triplet paradigm, which simplifies the multi-tool pipeline of modular approaches while avoiding the inefficiency of using large multimodal models for full-page document processing.")
+            gr.Markdown("> [Vision Matters 7B](https://huggingface.co/Yuting6/Vision-Matters-7B): vision-matters is a simple visual perturbation framework that can be easily integrated into existing post-training pipelines including sft, dpo, and grpo. our findings highlight the critical role of visual perturbation: better reasoning begins with better seeing.")
             gr.Markdown("> [ViGaL 7B](https://huggingface.co/yunfeixie/ViGaL-7B): vigal-7b shows that training a 7b mllm on simple games like snake using reinforcement learning boosts performance on benchmarks like mathvista and mmmu without needing worked solutions or diagrams indicating transferable reasoning skills.")
             gr.Markdown("> [Visionary-R1](https://huggingface.co/maifoundations/Visionary-R1): visionary-r1 is a novel framework for training visual language models (vlms) to perform robust visual reasoning using reinforcement learning (rl). unlike traditional approaches that rely heavily on (sft) or (cot) annotations, visionary-r1 leverages only visual question-answer pairs and rl, making the process more scalable and accessible.")
-            gr.Markdown("> [R1-Onevision-7B](https://huggingface.co/Fancy-MLLM/R1-Onevision-7B): r1-onevision model enhances vision-language understanding and reasoning capabilities, making it suitable for various tasks such as visual reasoning and image understanding. with its robust ability to perform multimodal reasoning, r1-onevision emerges as a powerful ai assistant capable of addressing different domains.")
-            gr.Markdown("> [VLM-R1-Qwen2.5VL-3B-Math-0305](https://huggingface.co/omlab/VLM-R1-Qwen2.5VL-3B-Math-0305): vlm-r1 is a framework designed to enhance the reasoning and generalization capabilities of vision-language models (vlms) using a reinforcement learning (rl) approach inspired by the r1 methodology originally developed for large language models.")
             gr.Markdown(">⚠️note: all the models in space are not guaranteed to perform well in video inference use cases.")  
 
     # Define the submit button actions
@@ -411,20 +360,6 @@ with gr.Blocks(css=css, theme="bethecloud/storj_theme") as demo:
                            repetition_penalty
                        ],
                        outputs=[output, markdown_output])
-    pdf_submit.click(fn=generate_pdf,
-                     inputs=[
-                         model_choice, pdf_query, pdf_upload,
-                         max_new_tokens, temperature, top_p, top_k,
-                         repetition_penalty
-                     ],
-                     outputs=[output, markdown_output])
-    
-    # Uncomment the following lines to enable download functionality(ps:no needed for now)
-    #download_btn.click(
-    #    fn=save_to_md,
-    #    inputs=output,
-    #    outputs=None
-    #)
 
 if __name__ == "__main__":
     demo.queue(max_size=30).launch(share=True, mcp_server=True, ssr_mode=False, show_error=True)
