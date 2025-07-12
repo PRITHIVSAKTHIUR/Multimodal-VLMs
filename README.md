@@ -1,168 +1,180 @@
-# **Multimodal-VLMs**
+# **Multimodal VLMs - OCR & VQA Interface**
 
-A comprehensive Gradio-based application for multimodal vision-language model inference, supporting image, video, and PDF inputs across multiple state-of-the-art models.
+> A comprehensive Gradio-based interface for running multiple state-of-the-art Vision-Language Models (VLMs) for Optical Character Recognition (OCR) and Visual Question Answering (VQA) tasks. This application supports both image and video inference across 5 different pre-trained models.
 
 ## Features
 
-- **Multi-Input Support**: Process images, videos, and single-page PDFs
-- **Multiple Models**: Choose from 5 different vision-language models
-- **Real-time Streaming**: Get responses as they're generated
-- **Advanced Controls**: Fine-tune generation parameters
-- **Export Functionality**: Download results as Markdown files
+- **Multi-Model Support**: Integration of 5 different VLMs with specialized capabilities
+- **Dual Input Modes**: Support for both image and video input processing
+- **Real-time Streaming**: Live text generation with streaming output
+- **Advanced Configuration**: Customizable generation parameters (temperature, top-p, top-k, etc.)
+- **User-friendly Interface**: Clean Gradio web interface with example datasets
+- **GPU Acceleration**: Optimized for CUDA-enabled environments
 
 ## Supported Models
 
-| Model | Description |
-|-------|-------------|
-| Vision-Matters-7B-Math | Visual perturbation framework for enhanced mathematical reasoning |
-| ViGaL-7B | Reinforcement learning trained model using simple games like Snake |
-| Visionary-R1 | Novel RL framework for robust visual reasoning without CoT annotations |
-| R1-Onevision-7B | Enhanced vision-language understanding and reasoning capabilities |
-| VLM-R1-Qwen2.5VL-3B-Math-0305 | R1 methodology framework for improved VLM reasoning |
+### 1. Vision-Matters-7B
+- **Source**: Yuting6/Vision-Matters-7B
+- **Specialty**: Enhanced visual perturbation framework for better reasoning
+- **Architecture**: Based on Qwen2.5-VL with improved visual comprehension
+
+### 2. WR30a-Deep-7B-0711
+- **Source**: prithivMLmods/WR30a-Deep-7B-0711
+- **Specialty**: Image captioning, visual analysis, and image reasoning
+- **Training**: Fine-tuned on 1,500k image pairs for superior understanding
+
+### 3. ViGaL-7B
+- **Source**: yunfeixie/ViGaL-7B
+- **Specialty**: Game-trained model with transferable reasoning skills
+- **Performance**: Enhanced performance on MathVista and MMMU benchmarks
+
+### 4. MonkeyOCR-pro-1.2B
+- **Source**: echo840/MonkeyOCR-pro-1.2B
+- **Specialty**: Document OCR with Structure-Recognition-Relation (SRR) paradigm
+- **Focus**: Efficient full-page document processing
+
+### 5. Visionary-R1-3B
+- **Source**: maifoundations/Visionary-R1
+- **Specialty**: Reinforcement learning-based visual reasoning
+- **Approach**: Scalable training using only visual question-answer pairs
 
 ## Installation
 
-### Requirements
+### Prerequisites
+- Python 3.8+
+- CUDA-compatible GPU (recommended)
+- 16GB+ RAM
+- 50GB+ storage for models
 
+### Dependencies
 ```bash
-pip install torch torchvision
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 pip install transformers
 pip install gradio
 pip install spaces
-pip install pillow
 pip install opencv-python
-pip install pdf2image
+pip install pillow
 pip install numpy
 ```
 
-### Setup
-
-1. Clone the repository:
+### Clone Repository
 ```bash
 git clone https://github.com/PRITHIVSAKTHIUR/Multimodal-VLMs.git
 cd Multimodal-VLMs
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+## Usage
 
-3. Run the application:
+### Basic Setup
 ```bash
 python app.py
 ```
 
-## Usage
+### Environment Variables
+- `MAX_INPUT_TOKEN_LENGTH`: Maximum input token length (default: 4096)
+
+### Interface Access
+Once launched, access the interface through your browser at the provided local URL.
+
+## API Reference
 
 ### Image Inference
-
-1. Select the "Image Inference" tab
-2. Enter your query in the text box
-3. Upload an image file
-4. Choose your preferred model
-5. Adjust advanced parameters if needed
-6. Click "Submit"
+```python
+generate_image(
+    model_name: str,           # Selected model identifier
+    text: str,                 # Query text
+    image: Image.Image,        # PIL Image object
+    max_new_tokens: int = 1024,
+    temperature: float = 0.6,
+    top_p: float = 0.9,
+    top_k: int = 50,
+    repetition_penalty: float = 1.2
+)
+```
 
 ### Video Inference
+```python
+generate_video(
+    model_name: str,           # Selected model identifier
+    text: str,                 # Query text
+    video_path: str,           # Path to video file
+    max_new_tokens: int = 1024,
+    temperature: float = 0.6,
+    top_p: float = 0.9,
+    top_k: int = 50,
+    repetition_penalty: float = 1.2
+)
+```
 
-1. Select the "Video Inference" tab
-2. Enter your query describing what you want to analyze
-3. Upload a video file
-4. The system will automatically extract 10 evenly spaced frames
-5. Choose your model and submit
+## Configuration Parameters
 
-### PDF Inference
+### Generation Settings
+- **max_new_tokens**: Maximum number of tokens to generate (1-2048)
+- **temperature**: Randomness in generation (0.1-4.0)
+- **top_p**: Nucleus sampling threshold (0.05-1.0)
+- **top_k**: Top-k sampling parameter (1-1000)
+- **repetition_penalty**: Penalty for repeated tokens (1.0-2.0)
 
-1. Select the "Single Page PDF Inference" tab
-2. Enter your query about the document
-3. Upload a single-page PDF file
-4. The system converts the PDF to an image for processing
-5. Choose your model and submit
+### Video Processing
+- **Frame Sampling**: Extracts 10 evenly spaced frames from input video
+- **Format Support**: Standard video formats (MP4, AVI, MOV)
+- **Resolution**: Automatic frame preprocessing and RGB conversion
 
-## Advanced Parameters
+## Examples
 
-| Parameter | Description | Range | Default |
-|-----------|-------------|-------|---------|
-| Max New Tokens | Maximum number of tokens to generate | 1-2048 | 1024 |
-| Temperature | Controls randomness in generation | 0.1-4.0 | 0.6 |
-| Top-p | Nucleus sampling parameter | 0.05-1.0 | 0.9 |
-| Top-k | Top-k sampling parameter | 1-1000 | 50 |
-| Repetition Penalty | Penalty for repetitive text | 1.0-2.0 | 1.2 |
+### Image Tasks
+- Mathematical problem solving
+- Document content extraction
+- Scene explanation and analysis
+- Expression simplification
+- Variable solving
 
-## System Requirements
+### Video Tasks
+- Detailed video content analysis
+- Action recognition and description
+- Sequential frame understanding
 
-- **GPU**: CUDA-compatible GPU recommended for optimal performance
-- **RAM**: Minimum 16GB RAM
-- **Storage**: At least 50GB free space for model weights
-- **Python**: Version 3.8 or higher
+## Performance Optimization
 
-## Model Loading
+### GPU Memory Management
+- Models loaded with float16 precision
+- Automatic device detection (CUDA/CPU)
+- Efficient memory utilization across multiple models
 
-The application automatically loads all 5 models at startup:
-- Models are loaded in float16 precision for memory efficiency
-- Each model uses its respective processor and tokenizer
-- Models are moved to GPU if available, otherwise CPU
-
-## Video Processing
-
-- Videos are downsampled to 10 evenly spaced frames
-- Each frame is converted to PIL Image format
-- Timestamps are preserved for context
-- Supports common video formats (MP4, AVI, MOV)
-
-## PDF Processing
-
-- Only single-page PDFs are supported
-- PDFs are converted to images using pdf2image
-- First page is processed if multiple pages exist
-- Supports standard PDF formats
-
-## Error Handling
-
-The application includes comprehensive error handling for:
-- Invalid file formats
-- Model loading failures
-- GPU memory issues
-- File conversion errors
-- Network connectivity problems
-
-## Performance Notes
-
-- GPU acceleration is automatically used when available
-- Models are kept in memory for faster inference
-- Streaming output provides real-time feedback
-- Video processing may take longer due to frame extraction
+### Processing Optimization
+- Streaming text generation for real-time feedback
+- Threaded model inference to prevent UI blocking
+- Optimized tokenization and preprocessing
 
 ## Limitations
 
-- Video inference performance may vary across models
-- Single-page PDF processing only
-- Maximum input token length: 4096 tokens
-- GPU memory requirements vary by model
+- Video inference performance varies across models
+- GPU memory requirements scale with model size
+- Processing time depends on input complexity and generation length
+- Some models may not perform optimally for all task types
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is open-source and available under the MIT License.
 
 ## Acknowledgments
 
 - Hugging Face Transformers library
-- Gradio framework
-- Individual model creators and researchers
-- Open source community contributions
+- Gradio framework for web interface
+- Model developers and research teams
+- Open-source computer vision community
 
 ## Support
 
 For issues and questions:
-- Open an issue on GitHub
-- Check the discussions section
-- Review the documentation
+- Create an issue in the GitHub repository
+- Check the Hugging Face Space discussions
+- Review model documentation for specific capabilities
